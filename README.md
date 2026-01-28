@@ -1,7 +1,7 @@
 ## Online Sınav Sistemi
 
-Bu proje, web tabanlı bir online sınav sistemi geliştirmek amacıyla yapılmıştır.
-Öğrencilerin sınav sorularını cevaplayabildiği ve sınav sonucunu görüntüleyebildiği basit bir sistemdir.
+Bu proje, web tabanlı bir online sınav sistemi geliştirmek amacıyla yapıldı.
+Öğrencilerin sınav sorularını cevaplayabildiği ve sınav sonucunu görüntüleyebildiği  bir sistemdir.
 
 Proje, backend – frontend – veritabanı ilişkisini öğrenmek ve uygulamak için geliştirilmiştir.
 
