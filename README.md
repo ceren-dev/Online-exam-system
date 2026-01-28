@@ -1,4 +1,4 @@
-## Online Exam System
+## Online Sınav Sistemi
 
 Bu proje, web tabanlı bir online sınav sistemi geliştirmek amacıyla yapılmıştır.
 Öğrencilerin sınav sorularını cevaplayabildiği ve sınav sonucunu görüntüleyebildiği basit bir sistemdir.
