@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Sınav Sonucu</title>
+  <style>
+    body { font-family: Arial; padding: 40px; background: #b6e7d2; }
+    .card {
+      background: rgb(0, 255, 255);
+      padding: 30px;
+      max-width: 400px;
+      margin: auto;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 255, 187, 0.1);
+      text-align: center;
+    }
+    .score { font-size: 32px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Sınav Sonucu</h1>
+  <p id="info"></p>
+  <div class="score" id="score"></div>
+  <p id="detail"></p>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+
+  const examId = params.get("exam_id");
+  const studentId = params.get("student_id");
+
+  fetch(`/exam/${examId}/result?student_id=${studentId}`)
+    .then(res => res.json())
+    .then(data => {
+  const correct = data.correct ?? 0;
+  const wrong = data.wrong ?? 0;
+
+  document.getElementById("info").innerText =
+    `Sınav: ${data.exam_id} | Öğrenci: ${data.student_id}`;
+
+  document.getElementById("score").innerText =
+    `Puan: ${data.score}`;
+
+  document.getElementById("detail").innerText =
+    `Doğru: ${correct} | Yanlış: ${wrong}`;
+});
+
+</script>
+
+</body>
+</html>

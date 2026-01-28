@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Online Sınav</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<h1 style="margin-left:80px;margin-bottom: 600px;">Online Sınav</h1>
+
+<div id="exam"></div>
+
+<div class="bottom-bar">
+  <button onclick="prevQuestion()">⬅ Geri</button>
+  <button onclick="submitAnswers()">Gönder</button>
+  <button onclick="nextQuestion()"class="next-btn">İleri ➡</button>
+</div>
+
+
+
+
+
+<script>
+  const examId = 1;
+  const studentId = 1;
+
+  let questions = [];
+  let currentIndex = 0;
+
+  async function loadQuestions() {
+    const res = await fetch(`/exam/${examId}/questions`);
+    questions = await res.json();
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    const q = questions[currentIndex];
+    const examDiv = document.getElementById("exam");
+
+    examDiv.innerHTML = `
+      <div class="card">
+        <h3>${q.question_text}</h3>
+
+       <label>
+      <input type="radio"
+       name="q${q.question_id}"
+       value="A"
+       onchange="saveAnswer(${q.question_id}, 'A')">
+      ${q.option_a}
+      </label>
+
+        <label>
+  <input type="radio"
+         name="q${q.question_id}"
+         value="B"
+         onchange="saveAnswer(${q.question_id}, 'B')">
+  ${q.option_b}
+</label>
+
+       <label>
+  <input type="radio"
+         name="q${q.question_id}"
+         value="C"
+         onchange="saveAnswer(${q.question_id}, 'C')">
+  ${q.option_c}
+</label>
+
+     <label>
+  <input type="radio"
+         name="q${q.question_id}"
+         value="D"
+         onchange="saveAnswer(${q.question_id}, 'D')">
+  ${q.option_d}
+</label>
+
+      </div>
+    `;
+  }
+
+  function nextQuestion() {
+    if (currentIndex < questions.length - 1) {
+      currentIndex++;
+      renderQuestion();
+    }
+  }
+
+  function prevQuestion() {
+    if (currentIndex > 0) {
+      currentIndex--;
+      renderQuestion();
+    }
+  }
+async function saveAnswer(questionId, option) {
+  console.log("CEVAP GÖNDERİLİYOR:", questionId, option);
+
+  await fetch("/answer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      exam_id: examId,
+      student_id: studentId,
+      question_id: questionId,
+      selected_option: option
+    })
+  });
+}
+
+  async function submitAnswers() {
+    for (const q of questions) {
+      const selected = document.querySelector(
+        `input[name="q${q.question_id}"]:checked`
+      );
+
+      if (!selected) continue;
+
+      await fetch("/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          exam_id: examId,
+          student_id: studentId,
+          question_id: q.question_id,
+          selected_option: selected.value
+        })
+      });
+    }
+
+    window.location.href =
+      `/result.html?exam_id=${examId}&student_id=${studentId}`;
+  }
+
+  loadQuestions();
+</script>
+
+</body>
+</html>
