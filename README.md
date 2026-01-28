@@ -51,5 +51,7 @@ HTML / CSS / JavaScript – Frontend
 ```bash
 npm install
 npm start
+## Geliştirici
+Ceren Ünyeli
 
 
