@@ -68,31 +68,32 @@ app.get("/exam/:id/result", async (req, res) => {
     const exam_id = req.params.id;
     const student_id = req.query.student_id;
 
-    if (!student_id) {
-      return res.status(400).json({ error: "student_id gerekli" });
-    }
-
-   const result = await sql.query`
-  SELECT
-    COUNT(*) AS total_questions,
-    COALESCE(SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END), 0) AS correct_count,
-    COALESCE(SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END), 0) AS wrong_count
-  FROM StudentAnswer
-  WHERE exam_id = ${exam_id}
-    AND student_id = ${student_id}
-`;
+    //  SADECE BU SINAVIN CEVAPLARINI AL
+    const result = await sql.query`
+      SELECT
+        COUNT(*) AS total_questions,
+        SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correct_count,
+        SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END) AS wrong_count
+      FROM StudentAnswer
+      WHERE exam_id = ${exam_id}
+        AND student_id = ${student_id}
+    `;
 
     const stats = result.recordset[0];
 
-    const score = stats.correct_count * 20; // 5 soru varsa: 20 puan/soru
+    //  SONUCU HESAPLADIKTAN SONRA TEMİZLE
+    await sql.query`
+      DELETE FROM StudentAnswer
+      WHERE exam_id = ${exam_id}
+        AND student_id = ${student_id}
+    `;
 
     res.json({
       exam_id,
       student_id,
-      total_questions: stats.total_questions,
-      correct: stats.correct_count,
-      wrong: stats.wrong_count,
-      score
+      correct: stats.correct_count || 0,
+      wrong: stats.wrong_count || 0,
+      score: (stats.correct_count || 0) * 20
     });
 
   } catch (err) {
@@ -102,49 +103,49 @@ app.get("/exam/:id/result", async (req, res) => {
 });
 
 app.post("/answer", async (req, res) => {
-  const { exam_id, student_id, question_id, selected_option } = req.body;
-
   try {
-    console.log(" ANSWER GELDİ:", req.body);
+    const { student_id, exam_id, question_id, selected_option } = req.body;
 
+    // doğru cevabı bul
     const correctResult = await sql.query`
-      SELECT Q.correct_option, EQ.question_version
-      FROM ExamQuestion EQ
-      JOIN Question Q
-        ON Q.question_id = EQ.question_id
-       AND Q.version_no = EQ.question_version
-      WHERE EQ.exam_id = ${exam_id}
-        AND EQ.question_id = ${question_id}
+      SELECT correct_option
+      FROM Question
+      WHERE question_id = ${question_id}
     `;
 
-    const correctOption =
-      correctResult.recordset[0].correct_option.trim().toUpperCase();
+    const correct_option = correctResult.recordset[0].correct_option;
+    const is_correct = selected_option === correct_option ? 1 : 0;
 
-    const selected =
-      selected_option.trim().toUpperCase();
-
-    const isCorrect = selected === correctOption ? 1 : 0;
-
-    await sql.query`
-      INSERT INTO StudentAnswer (
-        student_id,
-        exam_id,
-        question_id,
-        question_version,
-        selected_option,
-        is_correct
-      )
-      VALUES (
-        ${student_id},
-        ${exam_id},
-        ${question_id},
-        ${correctResult.recordset[0].question_version},
-        ${selected},
-        ${isCorrect}
-      )
+    //  daha önce cevap var mı?
+    const exists = await sql.query`
+      SELECT 1 FROM StudentAnswer
+      WHERE student_id = ${student_id}
+        AND exam_id = ${exam_id}
+        AND question_id = ${question_id}
     `;
 
-    res.json({ success: true, isCorrect });
+    if (exists.recordset.length > 0) {
+      //  UPDATE
+      await sql.query`
+        UPDATE StudentAnswer
+        SET selected_option = ${selected_option},
+            is_correct = ${is_correct}
+        WHERE student_id = ${student_id}
+          AND exam_id = ${exam_id}
+          AND question_id = ${question_id}
+      `;
+    } else {
+      //  INSERT
+      await sql.query`
+        INSERT INTO StudentAnswer
+        (student_id, exam_id, question_id, selected_option, is_correct)
+        VALUES
+        (${student_id}, ${exam_id}, ${question_id}, ${selected_option}, ${is_correct})
+      `;
+    }
+
+    res.json({ message: "Cevap kaydedildi" });
+
   } catch (err) {
     console.error(" ANSWER HATASI:", err);
     res.status(500).json({ error: err.message });
