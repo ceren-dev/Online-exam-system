@@ -16,7 +16,7 @@ app.listen(3000, () => {
 
 const config = {
   driver: "msnodesqlv8",
-  connectionString://
+  connectionString:
     "Driver={ODBC Driver 18 for SQL Server};" +
     "Server=DESKTOP-QUEAH06\\SQLEXPRESS;" +
     "Database=sinavsistemi;" +
@@ -82,7 +82,7 @@ app.get("/exam/:id/result", async (req, res) => {
     const stats = result.recordset[0];
 
     //  SONUCU HESAPLADIKTAN SONRA TEMİZLE
-    await sql.query`
+      await sql.query`
       DELETE FROM StudentAnswer
       WHERE exam_id = ${exam_id}
         AND student_id = ${student_id}
@@ -103,15 +103,27 @@ app.get("/exam/:id/result", async (req, res) => {
 });
 
 app.post("/answer", async (req, res) => {
+  
   try {
     const { student_id, exam_id, question_id, selected_option } = req.body;
-
+console.log(" /answer ÇAĞRILDI");
+  console.log(" BODY:", req.body);
     // doğru cevabı bul
     const correctResult = await sql.query`
       SELECT correct_option
       FROM Question
       WHERE question_id = ${question_id}
+      
     `;
+    // soru versiyonunu al (YENİ)
+const versionResult = await sql.query`
+  SELECT version_no
+  FROM Question
+  WHERE question_id = ${question_id}
+`;
+
+const question_version = versionResult.recordset[0].version_no;
+
 
     const correct_option = correctResult.recordset[0].correct_option;
     const is_correct = selected_option === correct_option ? 1 : 0;
@@ -130,17 +142,20 @@ app.post("/answer", async (req, res) => {
         UPDATE StudentAnswer
         SET selected_option = ${selected_option},
             is_correct = ${is_correct}
-        WHERE student_id = ${student_id}
-          AND exam_id = ${exam_id}
-          AND question_id = ${question_id}
+       WHERE student_id = ${student_id}
+  AND exam_id = ${exam_id}
+  AND question_id = ${question_id}
+  AND question_version = ${question_version}
+
       `;
     } else {
       //  INSERT
       await sql.query`
-        INSERT INTO StudentAnswer
-        (student_id, exam_id, question_id, selected_option, is_correct)
-        VALUES
-        (${student_id}, ${exam_id}, ${question_id}, ${selected_option}, ${is_correct})
+      INSERT INTO StudentAnswer
+(student_id, exam_id, question_id, question_version, selected_option, is_correct)
+VALUES
+(${student_id}, ${exam_id}, ${question_id}, ${question_version}, ${selected_option}, ${is_correct})
+
       `;
     }
 
@@ -151,5 +166,4 @@ app.post("/answer", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
